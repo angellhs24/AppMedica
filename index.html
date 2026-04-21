@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Dashboard - Glassmorphism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .bg-gradient-custom {
+            background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+    <div id="root" class="w-[390px] h-[844px] bg-gradient-custom overflow-hidden shadow-2xl relative rounded-[3rem] border-[8px] border-gray-900"></div>
+
+    <script type="text/javascript">
+        const { useState } = React;
+        const { motion, AnimatePresence } = FramerMotion;
+
+        // --- Componentes de Pantallas ---
+
+        const Dashboard = () => (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} class="p-6 space-y-6 overflow-y-auto h-full pb-24">
+                <header class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-slate-800">Hola, Angel</h1>
+                    <div class="p-2 glass rounded-full relative">
+                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                        <i data-lucide="bell" class="w-6 h-6 text-slate-600"></i>
+                    </div>
+                </header>
+
+                {/* Gráfico Circular de Progreso */}
+                <div class="glass rounded-3xl p-6 flex flex-col items-center justify-center shadow-sm">
+                    <div class="relative w-32 h-32 flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-blue-100" />
+                            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="10" fill="transparent" stroke-dasharray="364.4" stroke-dashoffset="29" stroke-linecap="round" class="text-blue-500" />
+                        </svg>
+                        <span class="absolute text-3xl font-bold text-slate-800">92%</span>
+                    </div>
+                    <p class="mt-4 text-slate-500 font-medium">Salud General</p>
+                </div>
+
+                {/* Próxima Cita */}
+                <div class="bg-blue-600 rounded-3xl p-5 text-white shadow-lg">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-blue-100 text-sm">Próxima Cita</p>
+                            <h3 class="font-bold text-lg">Dr. Roberto Sánchez</h3>
+                        </div>
+                        <i data-lucide="calendar" class="w-5 h-5 opacity-80"></i>
+                    </div>
+                    <div class="flex items-center space-x-2 text-sm bg-blue-500/50 p-2 rounded-xl">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>Mañana, 10:30 AM</span>
+                    </div>
+                </div>
+
+                {/* Mini Gráficos */}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass rounded-2xl p-4">
+                        <div class="flex justify-between mb-2">
+                            <i data-lucide="footprints" class="text-green-500 w-5 h-5"></i>
+                            <span class="text-xs text-green-600 font-bold">+12%</span>
+                        </div>
+                        <p class="text-2xl font-bold">8,432</p>
+                        <p class="text-[10px] text-slate-400">PASOS DIARIOS</p>
+                    </div>
+                    <div class="glass rounded-2xl p-4">
+                        <div class="flex justify-between mb-2">
+                            <i data-lucide="heart-pulse" class="text-red-500 w-5 h-5"></i>
+                            <span class="text-xs text-slate-400 font-medium">Prom.</span>
+                        </div>
+                        <p class="text-2xl font-bold">72 <span class="text-sm font-normal">bpm</span></p>
+                        <p class="text-[10px] text-slate-400">RITMO CARDÍACO</p>
+                    </div>
+                </div>
+            </motion.div>
+        );
+
+        const History = () => (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} class="p-6 pb-24 h-full overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-6 text-slate-800">Historial</h2>
+                <div class="space-y-6 relative border-l-2 border-blue-100 ml-3">
+                    {[
+                        { date: '12 Abr', title: 'Chequeo General', doc: 'Dr. Smith', color: 'bg-blue-500' },
+                        { date: '05 Mar', title: 'Odontología', doc: 'Dra. Vanesa', color: 'bg-green-500' },
+                        { date: '20 Feb', title: 'Laboratorio', doc: 'Análisis de Sangre', color: 'bg-purple-500' }
+                    ].map((item, i) => (
+                        <div key={i} class="relative pl-8">
+                            <div class={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ring-4 ring-white ${item.color}`}></div>
+                            <div class="glass p-4 rounded-2xl">
+                                <span class="text-xs font-bold text-blue-500 uppercase">{item.date}</span>
+                                <h4 class="font-bold text-slate-800">{item.title}</h4>
+                                <p class="text-sm text-slate-500">{item.doc}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </motion.div>
+        );
+
+        const Profile = () => (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} class="p-6 pb-24 text-center h-full overflow-y-auto">
+                <div class="relative w-32 h-32 mx-auto mb-4">
+                    <div class="w-full h-full rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-200">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Angel" alt="Perfil" />
+                    </div>
+                    <div class="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full border-2 border-white text-white">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Angel</h2>
+                <p class="text-slate-500 text-sm mb-6">Estudiante | 21 años</p>
+
+                <div class="flex justify-center space-x-2 mb-8">
+                    <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">O+</span>
+                    <span class="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full text-xs font-bold">Sin Alergias</span>
+                </div>
+
+                <div class="glass p-6 rounded-3xl mb-6">
+                    <p class="text-sm text-slate-400 mb-4 uppercase tracking-widest">Ficha Médica Digital</p>
+                    <div class="bg-white p-4 rounded-xl inline-block shadow-inner border border-slate-100">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=HealthApp-Angel" alt="QR" class="w-32 h-32" />
+                    </div>
+                    <p class="mt-4 text-xs text-slate-400 leading-relaxed">Escanea este código para compartir tu historial clínico rápidamente.</p>
+                </div>
+            </motion.div>
+        );
+
+        // --- Componente Principal ---
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('home');
+
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, [activeTab]);
+
+            return (
+                <div class="h-full flex flex-col">
+                    <div class="flex-1 overflow-hidden">
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'home' && <Dashboard key="home" />}
+                            {activeTab === 'history' && <History key="history" />}
+                            {activeTab === 'profile' && <Profile key="profile" />}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Bottom Nav */}
+                    <nav class="absolute bottom-6 left-6 right-6 h-20 glass rounded-[2.5rem] flex items-center justify-around px-2 shadow-lg border border-white/50">
+                        {[
+                            { id: 'home', icon: 'home' },
+                            { id: 'history', icon: 'clipboard-list' },
+                            { id: 'checks', icon: 'activity' },
+                            { id: 'profile', icon: 'user' }
+                        ].map((tab) => (
+                            <button 
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                class={`p-3 rounded-2xl transition-all duration-300 ${activeTab === tab.id ? 'bg-blue-500 text-white shadow-lg -translate-y-2' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                <i data-lucide={tab.icon} class="w-6 h-6"></i>
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
