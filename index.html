@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,6 +18,26 @@
         .modal-fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 60; }
         .chart-line { stroke-width: 2.5; fill: none; stroke-linecap: round; }
         .sleep-bar { fill: #8b5cf6; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes progress-bar {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress-bar 4s linear forwards;
+        }
+
+        .story-image {
+            animation: fadeIn 1s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-slate-900 flex justify-center items-center min-h-screen">
@@ -45,7 +66,170 @@
             }
         };
 
+        const AuthScreen = ({ onLogin }) => {
+            const [isRegistering, setIsRegistering] = useState(false);
+
+            if (isRegistering) {
+                return <RegisterScreen onSwitchToLogin={() => setIsRegistering(false)} onRegister={onLogin} />;
+            }
+            return <LoginScreen onSwitchToRegister={() => setIsRegistering(true)} onLogin={onLogin} />;
+        };
+
+        const LoginScreen = ({ onSwitchToRegister, onLogin }) => {
+            const [nss, setNss] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                // Aquí se realizaría la autenticación
+                localStorage.setItem('isRemembered', 'true');
+                onLogin();
+            };
+
+            return (
+                <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-200 to-blue-300 relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col justify-center p-8">
+                    <div className="glass rounded-2xl p-8 pt-12 mt-12 fade-in">
+                        <div className="text-center mb-8">
+                            <h1 className="text-2xl font-bold text-slate-800">Accede a tu Expediente</h1>
+                            <p className="text-slate-600 text-sm">Tu salud, siempre a tu alcance.</p>
+                        </div>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <input type="text" placeholder="NSS (Número de Seguridad Social)" value={nss} onChange={(e) => setNss(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" />
+                            <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" />
+                            <button type="submit" className="w-full mt-4 bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+                                Iniciar Sesión
+                            </button>
+                        </form>
+                         <p className="text-xs text-slate-500 mt-6 text-center">
+                            ¿No tienes una cuenta? <a href="#" onClick={(e) => {e.preventDefault(); onSwitchToRegister();}} className="font-bold text-indigo-600 hover:underline">Regístrate aquí</a>
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const RegisterScreen = ({ onSwitchToLogin, onRegister }) => {
+            const [formData, setFormData] = useState({
+                name: '',
+                nss: '',
+                password: '',
+                bloodType: '',
+                allergies: '',
+                clinic: '',
+                chronicDiseases: '',
+                emergencyContactName: '',
+                emergencyContactPhone: ''
+            });
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({...prev, [name]: value}));
+            };
+
+            const handleRegister = (e) => {
+                e.preventDefault();
+                // Aquí se procesaría el registro
+                console.log(formData);
+                localStorage.setItem('isRemembered', 'true');
+                onRegister(); 
+            };
+            
+            return (
+                 <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-100 to-blue-200 relative rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col p-6">
+                    <div className="flex items-center mb-4">
+                        <button onClick={onSwitchToLogin} className="text-slate-700"><ChevronLeftIcon /></button>
+                        <h2 className="text-xl font-bold text-slate-800 ml-4">Crear Nueva Cuenta</h2>
+                    </div>
+                    <form onSubmit={handleRegister} className="space-y-3 overflow-y-auto scrollbar-hide flex-grow pb-4">
+                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Nombre Completo" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="nss" value={formData.nss} onChange={handleChange} placeholder="NSS (Número de Seguridad Social)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Contraseña" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="bloodType" value={formData.bloodType} onChange={handleChange} placeholder="Tipo de Sangre (ej. A+)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="allergies" value={formData.allergies} onChange={handleChange} placeholder="Alergias (separadas por coma)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="clinic" value={formData.clinic} onChange={handleChange} placeholder="Clínica de adscripción" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="chronicDiseases" value={formData.chronicDiseases} onChange={handleChange} placeholder="Enfermedades Crónicas" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Nombre de Contacto de Emergencia" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        <input name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleChange} placeholder="Teléfono de Contacto de Emergencia" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
+                        
+                        <button type="submit" className="w-full mt-4 bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+                            Crear Cuenta
+                        </button>
+                    </form>
+                </div>
+            );
+        };
+
+         const PreLoginScreen = ({ onShowPasswordModal }) => {
+            const storyImages = [
+                "https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2070&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=1974&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1614926105151-9b75a4ec4886?q=80&w=1974&auto=format&fit=crop"
+            ];
+            const [currentStory, setCurrentStory] = useState(0);
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setCurrentStory((prev) => (prev + 1) % storyImages.length);
+                }, 4000);
+                return () => clearTimeout(timer);
+            }, [currentStory]);
+
+            return (
+                 <div className="w-[390px] h-[844px] bg-black relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col justify-end">
+                    {storyImages.map((src, index) => (
+                        <img key={src} src={src} className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentStory ? 'opacity-100 story-image' : 'opacity-0'}`} />
+                    ))}
+                    <div className="absolute top-4 left-4 right-4 flex space-x-1">
+                         {storyImages.map((_, index) => <div key={index} className="h-1 flex-1 bg-white/50 rounded-full"><div className={`h-full bg-white rounded-full ${index === currentStory ? 'animate-progress' : (index < currentStory ? 'w-full' : 'w-0')}`}></div></div>)}
+                    </div>
+                    <div className="relative z-10 p-8 text-white bg-gradient-to-t from-black/80 to-transparent">
+                        <h1 className="text-4xl font-bold">Hola, {patientData.name.split(' ')[0]}</h1>
+                        <p className="text-white/80 mb-6">Bienvenido de nuevo</p>
+                        <button onClick={onShowPasswordModal} className="w-full bg-blue-500 text-white font-bold p-4 rounded-lg hover:bg-blue-600 transition-transform transform hover:scale-105">
+                            Ingresar
+                        </button>
+                        <p className="text-xs text-white/60 mt-4 text-center">¿No eres {patientData.name.split(' ')[0]}? <a href="#" onClick={(e) => { e.preventDefault(); localStorage.removeItem('isRemembered'); window.location.reload(); }} className="font-bold text-white/80 hover:underline">Usar otra cuenta</a></p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const PasswordModal = ({ onClose, onLogin }) => {
+            const [password, setPassword] = useState('');
+            
+            const handleLogin = (e) => {
+                e.preventDefault();
+                // Simular validación de contraseña
+                onLogin();
+            };
+
+            return (
+                <div className="modal-overlay fade-in">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-slate-800 rounded-t-3xl p-6 shadow-2xl m-0 max-w-full">
+                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-2xl hover:text-white">×</button>
+                         <div className="text-center mb-6">
+                            <h3 className="font-bold text-xl text-white mt-3">Acceso Seguro</h3>
+                            <p className="text-slate-400 text-sm">Ingresa tu contraseña para continuar</p>
+                         </div>
+                         <form onSubmit={handleLogin}>
+                            <div className="relative">
+                                <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 pl-12 bg-slate-700 text-white rounded-lg border-2 border-slate-600 focus:border-blue-500 focus:ring-0 focus:outline-none transition-all" autoFocus />
+                                <svg className="w-6 h-6 absolute left-4 top-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
+                             <button type="submit" className="w-full mt-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold p-4 rounded-lg hover:shadow-lg transition-all transform hover:scale-105">
+                                Confirmar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )
+        };
+
+
         const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [isRemembered, setIsRemembered] = useState(false);
+            const [showPasswordModal, setShowPasswordModal] = useState(false);
             const [tab, setTab] = useState('home');
             const [showNotifications, setShowNotifications] = useState(false);
             const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
@@ -53,6 +237,7 @@
             const [showFichaMedica, setShowFichaMedica] = useState(false);
             const [showHistorialMedico, setShowHistorialMedico] = useState(false);
             const [showRecetasActivas, setShowRecetasActivas] = useState(false);
+            const [showEmergencyProfile, setShowEmergencyProfile] = useState(false);
             const [installEvent, setInstallEvent] = useState(null);
             const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -63,6 +248,11 @@
                     setShowInstallBanner(true);
                 };
                 window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+                const remembered = localStorage.getItem('isRemembered');
+                if (remembered) {
+                    setIsRemembered(true);
+                }
 
                 return () => {
                     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -82,6 +272,22 @@
                     });
                 }
             };
+            
+            const handleLogin = () => {
+                setIsLoggedIn(true);
+            };
+            
+            if (!isLoggedIn) {
+                if (isRemembered) {
+                    return (
+                        <React.Fragment>
+                            <PreLoginScreen onShowPasswordModal={() => setShowPasswordModal(true)} />
+                            {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} onLogin={handleLogin} />}
+                        </React.Fragment>
+                    );
+                }
+                return <AuthScreen onLogin={handleLogin} />;
+            }
 
 
             return (
@@ -102,12 +308,13 @@
                     {showFichaMedica && <FichaMedicaModal onClose={() => setShowFichaMedica(false)} />}
                     {showHistorialMedico && <HistorialMedicoScreen onClose={() => setShowHistorialMedico(false)} />}
                     {showRecetasActivas && <RecetasActivasModal onClose={() => setShowRecetasActivas(false)} />}
+                    {showEmergencyProfile && <EmergencyProfileScreen onClose={() => setShowEmergencyProfile(false)} />}
 
                     <div className="p-6 h-full pb-28 overflow-y-auto scrollbar-hide">
                        {tab === 'home' && <HomeTab onShowNotifications={() => setShowNotifications(true)} onShowAppointmentDetails={() => setShowAppointmentDetails(true)} />}
                        {tab === 'consultas' && <ConsultasTab onAgendar={() => setShowAgendaForm(true)} />}
                        {tab === 'chequeos' && <ChequeosTab />}
-                       {tab === 'perfil' && <PerfilTab onShowFichaMedica={() => setShowFichaMedica(true)} onShowHistorialMedico={() => setShowHistorialMedico(true)} onShowRecetasActivas={() => setShowRecetasActivas(true)} />}
+                       {tab === 'perfil' && <PerfilTab onShowFichaMedica={() => setShowFichaMedica(true)} onShowHistorialMedico={() => setShowHistorialMedico(true)} onShowRecetasActivas={() => setShowRecetasActivas(true)} onShowEmergencyProfile={() => setShowEmergencyProfile(true)} />}
                     </div>
 
                     <nav className="absolute bottom-6 left-6 right-6 h-20 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-around shadow-lg">
@@ -344,7 +551,7 @@
             )
         }
 
-        const PerfilTab = ({ onShowFichaMedica, onShowHistorialMedico, onShowRecetasActivas }) => {
+        const PerfilTab = ({ onShowFichaMedica, onShowHistorialMedico, onShowRecetasActivas, onShowEmergencyProfile }) => {
             const hasProfilePic = !!patientData.profilePic;
             return (
                 <div className="space-y-6">
@@ -384,16 +591,25 @@
                         <p className="font-bold text-slate-800">Recetas Activas</p>
                         <ChevronRightIcon />
                     </div>
-                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 text-white flex items-center justify-center space-x-2">
+                    <div onClick={onShowEmergencyProfile} className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 text-white flex items-center justify-center space-x-2 cursor-pointer">
                         <QrCodeIcon />
                         <p className="font-bold">PERFIL DE EMERGENCIA (QR)</p>
-                    </div>
-                    <div className="flex justify-center">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/QR_code_for_mobile_English_Wikipedia.svg/1200px-QR_code_for_mobile_English_Wikipedia.svg.png" className="w-32 h-32" />
                     </div>
                 </div>
             )
         }
+
+        const EmergencyProfileScreen = ({ onClose }) => (
+            <div className="modal-fullscreen bg-gradient-to-tr from-cyan-100 to-blue-200 p-6">
+                <div className="flex items-center mb-4">
+                    <button onClick={onClose} className="text-slate-700"><ChevronLeftIcon /></button>
+                    <h2 className="text-xl font-bold text-slate-800 ml-4">Perfil de Emergencia</h2>
+                </div>
+                <div className="flex justify-center items-center h-full">
+                    <img src="https://placehold.co/256x256/png" className="w-64 h-64" />
+                </div>
+            </div>
+        );
 
         const FichaMedicaModal = ({ onClose }) => (
             <div className="modal-overlay">
