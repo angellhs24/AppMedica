@@ -9,6 +9,11 @@
     <meta name="theme-color" content="#0EA5E9">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/supabase.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
@@ -50,6 +55,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- DATOS DE EJEMPLO (TEMPORAL) ---
+        // Seguiremos usando estos datos hasta que los conectemos a la base de datos en el siguiente paso.
         const patientData = {
             name: "Luis Angel Hernandez Santillan",
             patientId: "#ANG-2026-04",
@@ -66,24 +73,27 @@
             }
         };
 
-        const AuthScreen = ({ onLogin }) => {
-            const [isRegistering, setIsRegistering] = useState(false);
-
-            if (isRegistering) {
-                return <RegisterScreen onSwitchToLogin={() => setIsRegistering(false)} onRegister={onLogin} />;
-            }
-            return <LoginScreen onSwitchToRegister={() => setIsRegistering(true)} onLogin={onLogin} />;
-        };
-
-        const LoginScreen = ({ onSwitchToRegister, onLogin }) => {
-            const [nss, setNss] = useState('');
+        const LoginScreen = () => {
+            const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
 
-            const handleLogin = (e) => {
+            const handleLogin = async (e) => {
                 e.preventDefault();
-                // Aquí se realizaría la autenticación
-                localStorage.setItem('isRemembered', 'true');
-                onLogin();
+                setLoading(true);
+                setError(null);
+                
+                const { error } = await window.supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    setError(error.message);
+                }
+                
+                setLoading(false);
             };
 
             return (
@@ -94,142 +104,22 @@
                             <p className="text-slate-600 text-sm">Tu salud, siempre a tu alcance.</p>
                         </div>
                         <form onSubmit={handleLogin} className="space-y-4">
-                            <input type="text" placeholder="NSS (Número de Seguridad Social)" value={nss} onChange={(e) => setNss(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" />
-                            <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" />
-                            <button type="submit" className="w-full mt-4 bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
-                                Iniciar Sesión
-                            </button>
-                        </form>
-                         <p className="text-xs text-slate-500 mt-6 text-center">
-                            ¿No tienes una cuenta? <a href="#" onClick={(e) => {e.preventDefault(); onSwitchToRegister();}} className="font-bold text-indigo-600 hover:underline">Regístrate aquí</a>
-                        </p>
-                    </div>
-                </div>
-            );
-        };
-        
-        const RegisterScreen = ({ onSwitchToLogin, onRegister }) => {
-            const [formData, setFormData] = useState({
-                name: '',
-                nss: '',
-                password: '',
-                bloodType: '',
-                allergies: '',
-                clinic: '',
-                chronicDiseases: '',
-                emergencyContactName: '',
-                emergencyContactPhone: ''
-            });
+                            <input type="email" placeholder="Email de Usuario" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" required />
+                            <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" required />
+                            
+                            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
 
-            const handleChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({...prev, [name]: value}));
-            };
-
-            const handleRegister = (e) => {
-                e.preventDefault();
-                // Aquí se procesaría el registro
-                console.log(formData);
-                localStorage.setItem('isRemembered', 'true');
-                onRegister(); 
-            };
-            
-            return (
-                 <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-100 to-blue-200 relative rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col p-6">
-                    <div className="flex items-center mb-4">
-                        <button onClick={onSwitchToLogin} className="text-slate-700"><ChevronLeftIcon /></button>
-                        <h2 className="text-xl font-bold text-slate-800 ml-4">Crear Nueva Cuenta</h2>
-                    </div>
-                    <form onSubmit={handleRegister} className="space-y-3 overflow-y-auto scrollbar-hide flex-grow pb-4">
-                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Nombre Completo" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="nss" value={formData.nss} onChange={handleChange} placeholder="NSS (Número de Seguridad Social)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Contraseña" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="bloodType" value={formData.bloodType} onChange={handleChange} placeholder="Tipo de Sangre (ej. A+)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="allergies" value={formData.allergies} onChange={handleChange} placeholder="Alergias (separadas por coma)" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="clinic" value={formData.clinic} onChange={handleChange} placeholder="Clínica de adscripción" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="chronicDiseases" value={formData.chronicDiseases} onChange={handleChange} placeholder="Enfermedades Crónicas" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Nombre de Contacto de Emergencia" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        <input name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleChange} placeholder="Teléfono de Contacto de Emergencia" className="w-full p-3 rounded-lg bg-white/80 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm" />
-                        
-                        <button type="submit" className="w-full mt-4 bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
-                            Crear Cuenta
-                        </button>
-                    </form>
-                </div>
-            );
-        };
-
-         const PreLoginScreen = ({ onShowPasswordModal }) => {
-            const storyImages = [
-                "https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2070&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=1974&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1614926105151-9b75a4ec4886?q=80&w=1974&auto=format&fit=crop"
-            ];
-            const [currentStory, setCurrentStory] = useState(0);
-
-            useEffect(() => {
-                const timer = setTimeout(() => {
-                    setCurrentStory((prev) => (prev + 1) % storyImages.length);
-                }, 4000);
-                return () => clearTimeout(timer);
-            }, [currentStory]);
-
-            return (
-                 <div className="w-[390px] h-[844px] bg-black relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col justify-end">
-                    {storyImages.map((src, index) => (
-                        <img key={src} src={src} className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentStory ? 'opacity-100 story-image' : 'opacity-0'}`} />
-                    ))}
-                    <div className="absolute top-4 left-4 right-4 flex space-x-1">
-                         {storyImages.map((_, index) => <div key={index} className="h-1 flex-1 bg-white/50 rounded-full"><div className={`h-full bg-white rounded-full ${index === currentStory ? 'animate-progress' : (index < currentStory ? 'w-full' : 'w-0')}`}></div></div>)}
-                    </div>
-                    <div className="relative z-10 p-8 text-white bg-gradient-to-t from-black/80 to-transparent">
-                        <h1 className="text-4xl font-bold">Hola, {patientData.name.split(' ')[0]}</h1>
-                        <p className="text-white/80 mb-6">Bienvenido de nuevo</p>
-                        <button onClick={onShowPasswordModal} className="w-full bg-blue-500 text-white font-bold p-4 rounded-lg hover:bg-blue-600 transition-transform transform hover:scale-105">
-                            Ingresar
-                        </button>
-                        <p className="text-xs text-white/60 mt-4 text-center">¿No eres {patientData.name.split(' ')[0]}? <a href="#" onClick={(e) => { e.preventDefault(); localStorage.removeItem('isRemembered'); window.location.reload(); }} className="font-bold text-white/80 hover:underline">Usar otra cuenta</a></p>
-                    </div>
-                </div>
-            );
-        };
-        
-        const PasswordModal = ({ onClose, onLogin }) => {
-            const [password, setPassword] = useState('');
-            
-            const handleLogin = (e) => {
-                e.preventDefault();
-                // Simular validación de contraseña
-                onLogin();
-            };
-
-            return (
-                <div className="modal-overlay fade-in">
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-slate-800 rounded-t-3xl p-6 shadow-2xl m-0 max-w-full">
-                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-2xl hover:text-white">×</button>
-                         <div className="text-center mb-6">
-                            <h3 className="font-bold text-xl text-white mt-3">Acceso Seguro</h3>
-                            <p className="text-slate-400 text-sm">Ingresa tu contraseña para continuar</p>
-                         </div>
-                         <form onSubmit={handleLogin}>
-                            <div className="relative">
-                                <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 pl-12 bg-slate-700 text-white rounded-lg border-2 border-slate-600 focus:border-blue-500 focus:ring-0 focus:outline-none transition-all" autoFocus />
-                                <svg className="w-6 h-6 absolute left-4 top-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            </div>
-                             <button type="submit" className="w-full mt-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold p-4 rounded-lg hover:shadow-lg transition-all transform hover:scale-105">
-                                Confirmar
+                            <button type="submit" disabled={loading} className="w-full mt-4 bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 disabled:bg-indigo-400">
+                                {loading ? 'Iniciando...' : 'Iniciar Sesión'}
                             </button>
                         </form>
                     </div>
                 </div>
-            )
+            );
         };
-
 
         const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [isRemembered, setIsRemembered] = useState(false);
-            const [showPasswordModal, setShowPasswordModal] = useState(false);
+            const [session, setSession] = useState(null);
             const [tab, setTab] = useState('home');
             const [showNotifications, setShowNotifications] = useState(false);
             const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
@@ -242,6 +132,17 @@
             const [showInstallBanner, setShowInstallBanner] = useState(false);
 
             useEffect(() => {
+                // 1. Revisa si ya existe una sesión al cargar la app
+                window.supabase.auth.getSession().then(({ data: { session } }) => {
+                    setSession(session);
+                });
+
+                // 2. Escucha cambios en el estado de autenticación (login/logout)
+                const { data: { subscription } } = window.supabase.auth.onAuthStateChange((_event, session) => {
+                    setSession(session);
+                });
+                
+                // Manejador del prompt de instalación PWA
                 const handleBeforeInstallPrompt = (e) => {
                     e.preventDefault();
                     setInstallEvent(e);
@@ -249,12 +150,9 @@
                 };
                 window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-                const remembered = localStorage.getItem('isRemembered');
-                if (remembered) {
-                    setIsRemembered(true);
-                }
-
+                // 3. Limpia las suscripciones al desmontar el componente
                 return () => {
+                    subscription?.unsubscribe();
                     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
                 };
             }, []);
@@ -263,33 +161,21 @@
                 if (installEvent) {
                     installEvent.prompt();
                     installEvent.userChoice.then(choiceResult => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('User accepted the A2HS prompt');
-                        } else {
-                            console.log('User dismissed the A2HS prompt');
-                        }
                         setShowInstallBanner(false);
                     });
                 }
             };
             
-            const handleLogin = () => {
-                setIsLoggedIn(true);
+            const handleLogout = async () => {
+                await window.supabase.auth.signOut();
             };
             
-            if (!isLoggedIn) {
-                if (isRemembered) {
-                    return (
-                        <React.Fragment>
-                            <PreLoginScreen onShowPasswordModal={() => setShowPasswordModal(true)} />
-                            {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} onLogin={handleLogin} />}
-                        </React.Fragment>
-                    );
-                }
-                return <AuthScreen onLogin={handleLogin} />;
+            // Si no hay sesión, muestra la pantalla de Login
+            if (!session) {
+                return <LoginScreen />;
             }
 
-
+            // Si hay sesión, muestra la aplicación principal
             return (
                 <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-100 to-blue-200 relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white">
                     {showInstallBanner && (
@@ -314,7 +200,7 @@
                        {tab === 'home' && <HomeTab onShowNotifications={() => setShowNotifications(true)} onShowAppointmentDetails={() => setShowAppointmentDetails(true)} />}
                        {tab === 'consultas' && <ConsultasTab onAgendar={() => setShowAgendaForm(true)} />}
                        {tab === 'chequeos' && <ChequeosTab />}
-                       {tab === 'perfil' && <PerfilTab onShowFichaMedica={() => setShowFichaMedica(true)} onShowHistorialMedico={() => setShowHistorialMedico(true)} onShowRecetasActivas={() => setShowRecetasActivas(true)} onShowEmergencyProfile={() => setShowEmergencyProfile(true)} />}
+                       {tab === 'perfil' && <PerfilTab onShowFichaMedica={() => setShowFichaMedica(true)} onShowHistorialMedico={() => setShowHistorialMedico(true)} onShowRecetasActivas={() => setShowRecetasActivas(true)} onShowEmergencyProfile={() => setShowEmergencyProfile(true)} onLogout={handleLogout} />}
                     </div>
 
                     <nav className="absolute bottom-6 left-6 right-6 h-20 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-around shadow-lg">
@@ -551,7 +437,7 @@
             )
         }
 
-        const PerfilTab = ({ onShowFichaMedica, onShowHistorialMedico, onShowRecetasActivas, onShowEmergencyProfile }) => {
+        const PerfilTab = ({ onShowFichaMedica, onShowHistorialMedico, onShowRecetasActivas, onShowEmergencyProfile, onLogout }) => {
             const hasProfilePic = !!patientData.profilePic;
             return (
                 <div className="space-y-6">
@@ -594,6 +480,12 @@
                     <div onClick={onShowEmergencyProfile} className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 text-white flex items-center justify-center space-x-2 cursor-pointer">
                         <QrCodeIcon />
                         <p className="font-bold">PERFIL DE EMERGENCIA (QR)</p>
+                    </div>
+                     <div className="pt-4">
+                        <button onClick={onLogout} className="w-full flex items-center justify-center bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold p-3 rounded-2xl hover:shadow-xl transition-all transform hover:scale-105">
+                            <LogoutIcon />
+                            <span>Cerrar Sesión</span>
+                        </button>
                     </div>
                 </div>
             )
@@ -691,10 +583,12 @@
         const QrCodeIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
         const ProfilePlaceholderIcon = ({className}) => <svg className={className} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
         const CheckCircleIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>;
+        const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 
         const GenericTab = ({ title }) => <div className="text-center pt-20"><h2 className="text-2xl font-bold">{title}</h2></div>;
         const NavButton = ({ id, label, icon, activeTab, setTab }) => { const isActive = activeTab === id; return ( <button onClick={() => setTab(id)} className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? 'text-blue-600' : 'text-slate-500'}`}><div className={`transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-70'}`}>{icon}</div><span className={`text-xs mt-1 transition-all duration-300 ${isActive ? 'font-semibold' : 'font-normal'}`}>{label}</span></button> ) };
-        const HomeIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;const ConsultasIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>;const ChequeosIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>;const PerfilIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;
+        const HomeIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
+        const ConsultasIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>;const ChequeosIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>;const PerfilIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
