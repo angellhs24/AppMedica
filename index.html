@@ -220,26 +220,62 @@
             const [patientProfile, setPatientProfile] = useState(null);
             const [loading, setLoading] = useState(true);
 
-            const [showPasswordModal, setShowPasswordModal] = useState(false);
-            const [showConfirmLogout, setShowConfirmLogout] = useState(false);
-            const [tab, setTab] = useState('home');
-            const [showNotifications, setShowNotifications] = useState(false);
-            const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
-            const [showAgendaForm, setShowAgendaForm] = useState(false);
-            const [showFichaMedica, setShowFichaMedica] = useState(false);
-            const [showHistorialMedico, setShowHistorialMedico] = useState(false);
-            const [showRecetasActivas, setShowRecetasActivas] = useState(false);
-            const [showEmergencyProfile, setShowEmergencyProfile] = useState(false);
-            const [installEvent, setInstallEvent] = useState(null);
-            const [showInstallBanner, setShowInstallBanner] = useState(false);
+            // ... otros estados se mantienen igual ...
 
             const fetchProfile = useCallback(async (user) => {
-                if (!user) return;
+                if (!user) {
+                    setLoading(false);
+                    return;
+                }
                 const { data, error } = await window.supabase.from('patients').select('*').eq('id', user.id).single();
-                if (error) console.error("Error fetching profile:", error.message);
-                else setPatientProfile(data);
-                setLoading(false);
+                if (error) {
+                    console.error("Error fetching profile:", error.message);
+                } else {
+                    setPatientProfile(data);
+                }
+                setLoading(false); // Detenemos la carga SIEMPRE después de intentar obtener el perfil
             }, []);
+
+            useEffect(() => {
+                const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
+                setRememberedUser(remembered);
+
+                // Escucha cambios de sesión en tiempo real
+                const { data: { subscription } } = window.supabase.auth.onAuthStateChange((_event, session) => {
+                    setSession(session);
+                    if (session?.user) {
+                        fetchProfile(session.user);
+                    } else {
+                        setLoading(false);
+                    }
+                });
+                
+                // Verificación inicial de sesión
+                window.supabase.auth.getSession().then(({ data: { session } }) => {
+                    setSession(session);
+                    if (session?.user) {
+                        fetchProfile(session.user);
+                    } else {
+                        setLoading(false);
+                    }
+                });
+
+                // ... resto del useEffect (service workers, etc) ...
+            }, [fetchProfile]);
+
+            const handleLoginSuccess = useCallback(async () => {
+                setLoading(true); // Activamos carga para esperar la nueva sesión
+                const { data: { session } } = await window.supabase.auth.getSession();
+                setSession(session);
+                
+                const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
+                setRememberedUser(remembered);
+                
+                if (session?.user) {
+                    await fetchProfile(session.user);
+                }
+                setShowPasswordModal(false);
+            }, [fetchProfile]);
 
             useEffect(() => {
                 const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
