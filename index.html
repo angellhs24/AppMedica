@@ -250,9 +250,8 @@
                 setLoading(false); 
             }, []);
 
-            const handleSoftLogout = useCallback(() => {
-                 setSession(null);
-                 setPatientProfile(null);
+            const handleSoftLogout = useCallback(async () => {
+                 await window.supabase.auth.signOut();
             }, []);
 
             useEffect(() => {
@@ -264,6 +263,7 @@
                     if (session?.user) {
                         fetchProfile(session.user);
                     } else {
+                        setPatientProfile(null);
                         setLoading(false);
                     }
                 });
