@@ -1,13 +1,13 @@
-const CACHE_NAME = 'appmedica-cache-v1';
+const CACHE_NAME = 'appmedica-cache-v2'; // Incrementamos la versión del caché
 const urlsToCache = [
   './',
   './index.html',
-  // Agrega aquí otras rutas a tus assets, como CSS, JS o imágenes
-  'https://cdn.tailwindcss.com', // Importante para que el estilo funcione offline
+  './icon.svg', // <-- Añadimos nuestro nuevo ícono local
+  'https://cdn.tailwindcss.com',
   'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'
 ];
 
-// Evento de instalación: se dispara cuando el SW se registra
+// Evento de instalación
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
   event.waitUntil(
@@ -19,7 +19,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Evento de activación: se dispara después de la instalación
+// Evento de activación: Limpia cachés antiguos
 self.addEventListener('activate', event => {
   console.log('Service Worker: Activado');
   event.waitUntil(
@@ -37,18 +37,12 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
-// Evento fetch: intercepta todas las peticiones de red
+// Evento fetch: Sirve desde el caché o la red
 self.addEventListener('fetch', event => {
-  console.log('Service Worker: Petición fetch interceptada para:', event.request.url);
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Si encontramos una respuesta en el cache, la devolvemos
-        if (response) {
-          return response;
-        }
-        // Si no, hacemos la petición a la red
-        return fetch(event.request);
+        return response || fetch(event.request);
       })
   );
 });

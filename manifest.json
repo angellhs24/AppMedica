@@ -1,4 +1,3 @@
-
 {
   "name": "AppMedica",
   "short_name": "AppMedica",
@@ -9,14 +8,16 @@
   "description": "Tu app de salud y bienestar.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/192/8495/8495383.png",
+      "src": "icon.svg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/8495/8495383.png",
+      "src": "icon.svg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
