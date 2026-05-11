@@ -1,10 +1,9 @@
-const CACHE_NAME = 'appmedica-cache-v2'; // Incrementamos la versión del caché
+const CACHE_NAME = 'appmedica-cache-v3'; // Versión 3 para forzar la actualización
 const urlsToCache = [
   './',
   './index.html',
-  './icon.svg', // <-- Añadimos nuestro nuevo ícono local
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'
+  './icon.svg'
+  // Se eliminaron las URLs externas que causaban el error de CORS
 ];
 
 // Evento de instalación
@@ -13,7 +12,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Abriendo cache y guardando archivos');
+        console.log('Service Worker: Abriendo cache y guardando archivos locales');
         return cache.addAll(urlsToCache);
       })
   );
