@@ -55,7 +55,7 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const LoginScreen = ({ onLoginSuccess }) => {
+        const LoginScreen = ({ onLoginSuccess, showInstallBanner, installEvent, setShowInstallBanner }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [loading, setLoading] = useState(false);
@@ -94,6 +94,7 @@
 
             return (
                 <div className="w-screen h-screen bg-gradient-to-tr from-cyan-200 to-blue-300 relative overflow-hidden flex flex-col justify-center p-8">
+                    {showInstallBanner && <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white p-4 z-50 flex justify-between items-center"><p className="text-sm">Instala la app para una mejor experiencia.</p><div><button onClick={() => installEvent.prompt()} className="bg-white text-blue-500 font-bold py-1 px-3 rounded-lg mr-2 text-sm">Instalar</button><button onClick={() => setShowInstallBanner(false)} className="font-bold text-sm">X</button></div></div>}
                     <div className="glass rounded-2xl p-8 pt-12 mt-12 fade-in">
                         <div className="text-center mb-8">
                             <h1 className="text-2xl font-bold text-slate-800">Accede a tu Expediente</h1>
@@ -249,6 +250,11 @@
                 setLoading(false); 
             }, []);
 
+            const handleSoftLogout = useCallback(() => {
+                 setSession(null);
+                 setPatientProfile(null);
+            }, []);
+
             useEffect(() => {
                 const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
                 setRememberedUser(remembered);
@@ -271,12 +277,21 @@
 
                 const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setInstallEvent(e); setShowInstallBanner(true); };
                 window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        handleSoftLogout();
+                    }
+                };
+
+                document.addEventListener('visibilitychange', handleVisibilityChange);
 
                 return () => {
                     subscription?.unsubscribe();
                     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
                 };
-            }, [fetchProfile]);
+            }, [fetchProfile, handleSoftLogout]);
 
             const handleLoginSuccess = useCallback(async () => {
                 setLoading(true);
@@ -300,11 +315,6 @@
                 setPatientProfile(null);
                 setShowConfirmLogout(false);
             };
-
-            const handleSoftLogout = () => {
-                 setSession(null);
-                 setPatientProfile(null);
-            };
             
             const handleShowCheckupDetails = (checkup) => {
                 setSelectedCheckup(checkup);
@@ -318,8 +328,6 @@
             if (session) {
                  return (
                     <div className="w-screen h-screen bg-gradient-to-tr from-cyan-100 to-blue-200 relative overflow-hidden">
-                        {showInstallBanner && <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white p-4 z-50 flex justify-between items-center"><p className="text-sm">Instala la app para una mejor experiencia.</p><div><button onClick={() => installEvent.prompt()} className="bg-white text-blue-500 font-bold py-1 px-3 rounded-lg mr-2 text-sm">Instalar</button><button onClick={() => setShowInstallBanner(false)} className="font-bold text-sm">X</button></div></div>}
-                        
                         {/* Main content and tabs */}
                         <div className="p-6 h-full pb-28 overflow-y-auto scrollbar-hide">
                            {tab === 'home' && <HomeTab profile={patientProfile} onShowNotifications={() => setShowNotifications(true)} onShowAppointmentDetails={() => setShowAppointmentDetails(true)} />}
@@ -360,7 +368,12 @@
                 );
             }
 
-            return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+            return <LoginScreen 
+                onLoginSuccess={handleLoginSuccess}
+                showInstallBanner={showInstallBanner}
+                installEvent={installEvent}
+                setShowInstallBanner={setShowInstallBanner}
+            />;
         };
         
         const HomeTab = ({ profile, onShowNotifications, onShowAppointmentDetails }) => {
