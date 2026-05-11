@@ -20,7 +20,7 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
-        .modal-fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 60; }
+        .modal-fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 60; background-color: #e0f2fe; }
         .chart-line { stroke-width: 2.5; fill: none; stroke-linecap: round; }
         .sleep-bar { fill: #8b5cf6; }
         
@@ -53,7 +53,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
         const LoginScreen = ({ onLoginSuccess }) => {
             const [email, setEmail] = useState('');
@@ -226,11 +226,14 @@
             const [installEvent, setInstallEvent] = useState(null);
             const [showNotifications, setShowNotifications] = useState(false);
             const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+            const [showCheckupDetails, setShowCheckupDetails] = useState(false);
+            const [selectedCheckup, setSelectedCheckup] = useState(null);
             const [showAgendaForm, setShowAgendaForm] = useState(false);
             const [showFichaMedica, setShowFichaMedica] = useState(false);
             const [showHistorialMedico, setShowHistorialMedico] = useState(false);
             const [showRecetasActivas, setShowRecetasActivas] = useState(false);
             const [showEmergencyProfile, setShowEmergencyProfile] = useState(false);
+            const [showAiChat, setShowAiChat] = useState(false);
 
             const fetchProfile = useCallback(async (user) => {
                 if (!user) {
@@ -287,6 +290,7 @@
                     await fetchProfile(session.user);
                 }
                 setShowPasswordModal(false);
+                setTab('home');
             }, [fetchProfile]);
 
             const handleHardLogout = async () => {
@@ -301,6 +305,11 @@
                  setSession(null);
                  setPatientProfile(null);
             };
+            
+            const handleShowCheckupDetails = (checkup) => {
+                setSelectedCheckup(checkup);
+                setShowCheckupDetails(true);
+            };
 
             if (loading) {
                 return <div className="w-[390px] h-[844px] flex items-center justify-center bg-slate-800 text-white rounded-[3rem]"><p>Cargando...</p></div>;
@@ -310,27 +319,33 @@
                  return (
                     <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-100 to-blue-200 relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white">
                         {showInstallBanner && <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white p-4 z-50 flex justify-between items-center"><p className="text-sm">Instala la app para una mejor experiencia.</p><div><button onClick={() => installEvent.prompt()} className="bg-white text-blue-500 font-bold py-1 px-3 rounded-lg mr-2 text-sm">Instalar</button><button onClick={() => setShowInstallBanner(false)} className="font-bold text-sm">X</button></div></div>}
-                        {showNotifications && <NotificationPanel onClose={() => setShowNotifications(false)} />}
-                        {showAppointmentDetails && <AppointmentDetailsModal onClose={() => setShowAppointmentDetails(false)} />}
-                        {showAgendaForm && <AgendaForm onClose={() => setShowAgendaForm(false)} />}
-                        {patientProfile && showFichaMedica && <FichaMedicaModal onClose={() => setShowFichaMedica(false)} patientData={patientProfile} />}
-                        {patientProfile && showHistorialMedico && <HistorialMedicoScreen onClose={() => setShowHistorialMedico(false)} patientId={session.user.id} />}
-                        {patientProfile && showRecetasActivas && <RecetasActivasModal onClose={() => setShowRecetasActivas(false)} patientId={session.user.id} />}
-                        {showEmergencyProfile && <EmergencyProfileScreen onClose={() => setShowEmergencyProfile(false)} />}
-
+                        
+                        {/* Main content and tabs */}
                         <div className="p-6 h-full pb-28 overflow-y-auto scrollbar-hide">
                            {tab === 'home' && <HomeTab profile={patientProfile} onShowNotifications={() => setShowNotifications(true)} onShowAppointmentDetails={() => setShowAppointmentDetails(true)} />}
-                           {tab === 'consultas' && <ConsultasTab onAgendar={() => setShowAgendaForm(true)} />}
-                           {tab === 'chequeos' && <ChequeosTab />}
+                           {tab === 'consultas' && <ConsultasTab patientId={session.user.id} onAgendar={() => setShowAgendaForm(true)} onAskAi={() => setShowAiChat(true)} />}
+                           {tab === 'chequeos' && <ChequeosTab patientId={session.user.id} onShowDetails={handleShowCheckupDetails} />}
                            {tab === 'perfil' && <PerfilTab profile={patientProfile} loading={!patientProfile} onShowFichaMedica={() => setShowFichaMedica(true)} onShowHistorialMedico={() => setShowHistorialMedico(true)} onShowRecetasActivas={() => setShowRecetasActivas(true)} onShowEmergencyProfile={() => setShowEmergencyProfile(true)} onLogout={handleSoftLogout} />}
                         </div>
 
+                        {/* Navigation Bar */}
                         <nav className="absolute bottom-6 left-6 right-6 h-20 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-around shadow-lg">
                             <NavButton id="home" label="Inicio" icon={<HomeIcon />} activeTab={tab} setTab={setTab} />
                             <NavButton id="consultas" label="Consultas" icon={<ConsultasIcon />} activeTab={tab} setTab={setTab} />
                             <NavButton id="chequeos" label="Chequeos" icon={<ChequeosIcon />} activeTab={tab} setTab={setTab} />
                             <NavButton id="perfil" label="Perfil" icon={<PerfilIcon />} activeTab={tab} setTab={setTab} />
                         </nav>
+                        
+                        {/* Full-screen modals that should be contained */}
+                        {showNotifications && <NotificationPanel onClose={() => setShowNotifications(false)} patientId={session.user.id} />}
+                        {showAppointmentDetails && <AppointmentDetailsModal onClose={() => setShowAppointmentDetails(false)} />}
+                        {showCheckupDetails && <CheckupDetailsModal checkup={selectedCheckup} onClose={() => setShowCheckupDetails(false)} />}
+                        {showAgendaForm && <AgendaForm onClose={() => setShowAgendaForm(false)} />}
+                        {patientProfile && showFichaMedica && <FichaMedicaModal onClose={() => setShowFichaMedica(false)} patientData={patientProfile} />}
+                        {patientProfile && showHistorialMedico && <HistorialMedicoScreen onClose={() => setShowHistorialMedico(false)} patientId={session.user.id} />}
+                        {patientProfile && showRecetasActivas && <RecetasActivasModal onClose={() => setShowRecetasActivas(false)} patientId={session.user.id} />}
+                        {showEmergencyProfile && <EmergencyProfileScreen onClose={() => setShowEmergencyProfile(false)} />}
+                        {showAiChat && <AiChatScreen onClose={() => setShowAiChat(false)} />}
                     </div>
                 );
             }
@@ -425,33 +440,127 @@
             );
         };
 
-        const ConsultasTab = ({ onAgendar }) => {
-            const pastConsultations = [{ icon: 'general', specialty: 'CONSULTA GENERAL', doctor: 'Dr. Martinez', date: 'Dec 10', summary: 'Gripa, Meds: Amoxicilina' },{ icon: 'oftalmo', specialty: 'CHEQUEO OFTALMOLOGÍA', doctor: 'Dr. Fernandez', date: 'Nov 22', summary: 'Receta lentes' },{ icon: 'surgery', specialty: 'CIRUGÍA APÉNDICE', doctor: 'Dra. Ramos', date: 'Ene 15', summary: 'Recuperación exitosa' }];
-            const icons = { general: <UserIcon className="h-5 w-5 text-blue-600"/>, oftalmo: <EyeIcon className="h-5 w-5 text-purple-600"/>, surgery: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V4a1 1 0 011-1z" clipRule="evenodd" /></svg> };
+        const ConsultasTab = ({ patientId, onAgendar, onAskAi }) => {
+            const [history, setHistory] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [filter, setFilter] = useState(null);
+            const [showFilterModal, setShowFilterModal] = useState(false);
+
+            useEffect(() => {
+                const fetchConsultations = async () => {
+                    if (!patientId) {
+                        setLoading(false);
+                        return;
+                    }
+                    try {
+                        const { data, error } = await window.supabase
+                            .from('medical_history')
+                            .select('*')
+                            .eq('patient_id', patientId)
+                            .eq('type', 'consulta')
+                            .order('date', { ascending: false });
+                        if (error) throw error;
+                        setHistory(data);
+                    } catch (error) {
+                        setError(error.message);
+                        console.error("Error fetching consultations:", error.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchConsultations();
+            }, [patientId]);
+
+            const specialties = useMemo(() => {
+                const allSpecialties = history.map(item => item.specialty).filter(Boolean);
+                return [...new Set(allSpecialties)];
+            }, [history]);
+
+            const filteredHistory = useMemo(() => {
+                if (!filter) return history;
+                return history.filter(item => item.specialty === filter);
+            }, [history, filter]);
+
+            const icons = { 
+                'Medicina General': <UserIcon className="h-5 w-5 text-blue-600"/>, 
+                'Oftalmología': <EyeIcon className="h-5 w-5 text-purple-600"/>,
+                'Cardiología': <HeartIcon className="h-5 w-5 text-red-600"/>
+            };
 
             return (
-                <div className="space-y-6">
-                    <h1 className="text-3xl font-bold text-slate-800">Consultas</h1>
-                    <div onClick={onAgendar} className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between cursor-pointer hover:shadow-xl transition-shadow">
-                        <div><h2 className="font-bold text-xl">Agendar Consulta</h2><p className="text-sm opacity-90">Encuentra especialistas y reserva tu cita.</p></div>
-                        <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center"><PlusIcon/></div>
-                    </div>
-                    <div className="glass p-4 rounded-2xl">
-                        <h3 className="font-bold text-slate-800">Asistente de IA</h3><p className="text-sm text-slate-600 mb-3">Resuelve tus dudas médicas al instante.</p>
-                        <button className="w-full bg-purple-600 text-white font-bold p-2 rounded-lg hover:bg-purple-700 transition-colors text-sm">Pregúntale a la IA</button>
-                    </div>
-                    <div className="flex justify-between items-center"><h2 className="text-xl font-bold text-slate-800">Tus Consultas Previas</h2><button className="flex items-center text-blue-600 text-sm font-semibold glass rounded-lg px-3 py-1"><FilterIcon /> Filtrar</button></div>
-                    <div className="relative border-l-2 border-cyan-200 pl-6">
-                        {pastConsultations.map((item, index) => (
-                             <div key={index} className="mb-8 relative">
-                                <div className="absolute -left-[34px] top-0 w-8 h-8 rounded-full bg-white flex items-center justify-center border-2 border-cyan-200">{icons[item.icon]}</div>
-                                <div className="glass p-4 rounded-xl"><p className="font-bold text-slate-700 text-sm">{item.specialty}</p><p className="text-xs text-slate-500">{item.date} - {item.doctor}</p><p className="text-xs text-slate-600 mt-1">{item.summary}</p><button className="text-xs font-bold text-blue-600 mt-2">Ver detalles</button></div>
+                <React.Fragment>
+                    {showFilterModal && 
+                        <FilterModal 
+                            options={specialties} 
+                            activeFilter={filter} 
+                            onClose={() => setShowFilterModal(false)} 
+                            onApplyFilter={(newFilter) => { setFilter(newFilter); setShowFilterModal(false); }} 
+                        />}
+                    <div className="space-y-6">
+                        <h1 className="text-3xl font-bold text-slate-800">Consultas</h1>
+                        <div onClick={onAgendar} className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between cursor-pointer hover:shadow-xl transition-shadow">
+                            <div><h2 className="font-bold text-xl">Agendar Consulta</h2><p className="text-sm opacity-90">Encuentra especialistas y reserva tu cita.</p></div>
+                            <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center"><PlusIcon/></div>
+                        </div>
+                        <div className="glass p-4 rounded-2xl">
+                            <h3 className="font-bold text-slate-800">Asistente de IA</h3><p className="text-sm text-slate-600 mb-3">Resuelve tus dudas médicas al instante.</p>
+                            <button onClick={onAskAi} className="w-full bg-purple-600 text-white font-bold p-2 rounded-lg hover:bg-purple-700 transition-colors text-sm">Pregúntale a la IA</button>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-slate-800">Tus Consultas Previas</h2>
+                            <button onClick={() => setShowFilterModal(true)} className="flex items-center text-blue-600 text-sm font-semibold glass rounded-lg px-3 py-1">
+                                <FilterIcon /> {filter ? filter : 'Filtrar'}
+                            </button>
+                        </div>
+                        {loading && <p className="text-center text-slate-600">Cargando consultas...</p>}
+                        {error && <p className="text-center text-red-500">{error}</p>}
+                        {!loading && !error && filteredHistory.length === 0 && (
+                             <div className="text-center py-10 glass rounded-2xl">
+                                <p className="font-bold text-slate-700">No hay consultas</p>
+                                <p className="text-sm text-slate-500">{filter ? `No se encontraron consultas para "${filter}".` : 'No tienes consultas previas registradas.'}</p>
                             </div>
+                        )}
+                        {!loading && !error && filteredHistory.length > 0 && (
+                            <div className="relative border-l-2 border-cyan-200 pl-6 space-y-8">
+                                {filteredHistory.map((item) => (
+                                    <div key={item.id} className="relative">
+                                        <div className="absolute -left-[34px] top-0 w-8 h-8 rounded-full bg-white flex items-center justify-center border-2 border-cyan-200">
+                                            {icons[item.specialty] || <UserIcon className="h-5 w-5 text-gray-600"/>}
+                                        </div>
+                                        <div className="glass p-4 rounded-xl">
+                                            <p className="font-bold text-slate-700 text-sm">{item.specialty.toUpperCase()}</p>
+                                            <p className="text-xs text-slate-500">{new Date(item.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })} - {item.doctor}</p>
+                                            <p className="text-xs text-slate-600 mt-1">{item.summary}</p>
+                                            <button className="text-xs font-bold text-blue-600 mt-2">Ver detalles</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </React.Fragment>
+            );
+        };
+
+        const FilterModal = ({ options, activeFilter, onClose, onApplyFilter }) => (
+            <div className="modal-overlay fade-in">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[370px] bg-gradient-to-t from-slate-800 to-slate-700 rounded-t-3xl p-6 shadow-2xl">
+                    <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-2xl hover:text-white">×</button>
+                    <h3 className="font-bold text-xl text-white mb-4 text-center">Filtrar por Especialidad</h3>
+                    <div className="space-y-2">
+                        <button onClick={() => onApplyFilter(null)} className={`w-full p-3 text-left rounded-lg text-sm transition-colors ${!activeFilter ? 'bg-blue-500 text-white' : 'bg-slate-600 text-slate-200'}`}>
+                            Todas las especialidades
+                        </button>
+                        {options.map(option => (
+                             <button key={option} onClick={() => onApplyFilter(option)} className={`w-full p-3 text-left rounded-lg text-sm transition-colors ${activeFilter === option ? 'bg-blue-500 text-white' : 'bg-slate-600 text-slate-200'}`}>
+                                {option}
+                            </button>
                         ))}
                     </div>
                 </div>
-            );
-        };
+            </div>
+        );
 
         const AgendaForm = ({ onClose }) => {
             const [step, setStep] = useState('selection');
@@ -472,7 +581,7 @@
                     } else {
                          const doctorsWithImages = data.map(doc => ({
                             ...doc,
-                            img: doc.avatar_filename || 'https://placehold.co/128x128' // Usa la URL directamente
+                            img: doc.avatar_filename || 'https://placehold.co/128x128'
                         }));
                         setAllDoctors(doctorsWithImages);
                         setFilteredDoctors(doctorsWithImages);
@@ -558,31 +667,154 @@
             )
         }
 
-        const ChequeosTab = () => {
-            const checks = [
-                {name: "Examen de Sangre Anual", date: "15 de Mayo, 2024", status: "Pendiente"},
-                {name: "Check-up Dental", date: "28 de Mayo, 2024", status: "Pendiente"},
-                {name: "Revisión de la Vista", date: "10 de Junio, 2024", status: "Pendiente"}
-            ];
+        const AiChatScreen = ({ onClose }) => {
+            const [messages, setMessages] = useState([
+                { from: 'ai', text: 'Hola, soy tu asistente de salud. Puedo ofrecerte información general sobre síntomas, condiciones y bienestar. ¿En qué puedo ayudarte hoy? \n\n*Recuerda: No soy un doctor. La información proporcionada no debe sustituir el consejo médico profesional.*' }
+            ]);
+            const [input, setInput] = useState('');
+            const [loading, setLoading] = useState(false);
+            const chatEndRef = useRef(null);
+
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
+
+            const handleSend = async (e) => {
+                e.preventDefault();
+                if (!input.trim()) return;
+
+                const userMessage = { from: 'user', text: input };
+                setMessages(prev => [...prev, userMessage]);
+                setInput('');
+                setLoading(true);
+
+                // Llamada a la Edge Function de Supabase
+                try {
+                    const { data, error } = await window.supabase.functions.invoke('ask-gemini', {
+                        body: { query: input },
+                    });
+
+                    if (error) throw error;
+
+                    const aiMessage = { from: 'ai', text: data.reply };
+                    setMessages(prev => [...prev, aiMessage]);
+
+                } catch (error) {
+                    console.error("Error calling Edge Function:", error);
+                    const errorMessage = { from: 'ai', text: 'Lo siento, no pude procesar tu solicitud. Asegúrate de que la Edge Function \'ask-gemini\' esté desplegada y la clave de API sea correcta.' };
+                    setMessages(prev => [...prev, errorMessage]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="modal-fullscreen fade-in p-6 flex flex-col">
+                    <div className="flex items-center mb-4 flex-shrink-0">
+                        <button onClick={onClose} className="text-slate-700"><ChevronLeftIcon /></button>
+                        <h2 className="text-xl font-bold text-slate-800 ml-4">Asistente de IA</h2>
+                    </div>
+                    <div className="flex-grow overflow-y-auto space-y-4 pb-4 scrollbar-hide">
+                        {messages.map((msg, index) => (
+                            <div key={index} className={`flex items-end gap-2 ${msg.from === 'user' ? 'justify-end' : ''}`}>
+                                {msg.from === 'ai' && <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white flex-shrink-0"><SparklesIcon /></div>}
+                                <div className={`max-w-[80%] p-3 rounded-2xl ${msg.from === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white/80 text-slate-800 rounded-bl-none'}`}>
+                                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                        {loading && (
+                            <div className="flex items-end gap-2">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white flex-shrink-0"><SparklesIcon /></div>
+                                <div className="max-w-[80%] p-3 rounded-2xl bg-white/80 text-slate-800 rounded-bl-none">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-.3s]"></div>
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-.5s]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                         <div ref={chatEndRef} />
+                    </div>
+                    <form onSubmit={handleSend} className="flex-shrink-0 flex items-center gap-2 pt-2">
+                        <input 
+                            type="text" 
+                            value={input} 
+                            onChange={(e) => setInput(e.target.value)} 
+                            className="w-full p-3 rounded-full bg-white/90 border-2 border-transparent focus:border-blue-400 focus:ring-0 focus:outline-none text-sm transition-all" 
+                            placeholder="Escribe tu pregunta..." 
+                            disabled={loading}
+                        />
+                        <button type="submit" disabled={loading || !input.trim()} className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center flex-shrink-0 disabled:bg-blue-300 transition-colors">
+                            <SendIcon />
+                        </button>
+                    </form>
+                </div>
+            );
+        };
+
+        const ChequeosTab = ({ patientId, onShowDetails }) => {
+            const [checkups, setCheckups] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const fetchCheckups = async () => {
+                    if (!patientId) {
+                        setLoading(false);
+                        return;
+                    }
+                    try {
+                        const today = new Date().toISOString();
+                        const { data, error } = await window.supabase
+                            .from('checkups')
+                            .select('*')
+                            .eq('patient_id', patientId)
+                            .gt('date', today)
+                            .order('date', { ascending: true });
+
+                        if (error) throw error;
+                        setCheckups(data);
+                    } catch (error) {
+                        setError(error.message);
+                        console.error("Error fetching checkups:", error.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchCheckups();
+            }, [patientId]);
+
             return (
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center"><h1 className="text-3xl font-bold text-slate-800">Chequeos Médicos</h1><button className="w-10 h-10 bg-white/70 rounded-full flex items-center justify-center"><PlusIcon/></button></div>
-                    <p className="text-slate-600">Aquí puedes ver y agendar tus chequeos médicos de rutina.</p>
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-3xl font-bold text-slate-800">Chequeos Médicos</h1>
+                    </div>
+                    <p className="text-slate-600">Aquí puedes ver tus próximos chequeos médicos de rutina.</p>
                     <div className="space-y-3">
-                        {checks.map((check, i) => (
-                            <div key={i} className="glass p-4 rounded-xl">
+                        {loading && <p className="text-center text-slate-600">Cargando chequeos...</p>}
+                        {error && <p className="text-center text-red-500">{error}</p>}
+                        {!loading && !error && checkups.length === 0 && (
+                            <div className="text-center py-10 glass rounded-2xl">
+                                <p className="font-bold text-slate-700">¡Todo en orden!</p>
+                                <p className="text-sm text-slate-500">No tienes chequeos futuros programados.</p>
+                            </div>
+                        )}
+                        {!loading && !error && checkups.map((check) => (
+                            <div key={check.id} className="glass p-4 rounded-xl">
                                 <p className="font-bold text-slate-800">{check.name}</p>
-                                <p className="text-sm text-slate-600">Fecha: {check.date}</p>
+                                <p className="text-sm text-slate-600">Fecha: {new Date(check.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                 <div className="mt-2 flex justify-between items-center">
                                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${check.status === 'Pendiente' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}`}>{check.status}</span>
-                                    <button className="text-xs font-bold text-blue-600">Ver detalles</button>
+                                    <button onClick={() => onShowDetails(check)} className="text-xs font-bold text-blue-600">Ver detalles</button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
-            )
-        }
+            );
+        };
 
         const PerfilTab = ({ profile, loading, onShowFichaMedica, onShowHistorialMedico, onShowRecetasActivas, onShowEmergencyProfile, onLogout }) => {
             if (loading) {
@@ -683,31 +915,69 @@
             </div>
         );
 
-        const HistorialMedicoScreen = ({ onClose }) => {
-            const history = [
-                { type: 'surgery', title: 'Cirugía de Apéndice', date: 'Enero 2021', doctor: 'Dra. Ramos' },
-                { type: 'vaccine', title: 'Vacuna COVID-19 (Pfizer)', date: 'Marzo 2021', details: '2 dosis' },
-                { type: 'hospitalization', title: 'Hospitalización por Neumonía', date: 'Diciembre 2022', duration: '5 días' },
-            ];
-            const icons = { surgery: <PlusIcon />, vaccine: <PillIcon />, hospitalization: <UserIcon className="h-5 w-5"/> };
+        const HistorialMedicoScreen = ({ onClose, patientId }) => {
+            const [history, setHistory] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const fetchHistory = async () => {
+                    if (!patientId) {
+                        setLoading(false);
+                        return;
+                    }
+                    try {
+                        const { data, error } = await window.supabase
+                            .from('medical_history')
+                            .select('*')
+                            .eq('patient_id', patientId)
+                            .not('type', 'eq', 'consulta')
+                            .order('date', { ascending: false });
+                        if (error) throw error;
+                        setHistory(data);
+                    } catch (error) {
+                        setError(error.message);
+                        console.error("Error fetching medical history:", error.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchHistory();
+            }, [patientId]);
+            
+            const icons = { 
+                cirugia: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>,
+                vacuna: <PillIcon className="h-6 w-6 text-green-500"/>, 
+                hospitalizacion: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h8a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.221 16h9.558M12 11V3m0 8a4 4 0 00-4 4v3h8v-3a4 4 0 00-4-4z" /></svg>,
+                default: <ClipboardListIcon className="h-6 w-6 text-slate-500" />
+            };
 
             return (
                 <div className="modal-fullscreen bg-gradient-to-tr from-cyan-100 to-blue-200 p-6">
                      <div className="flex items-center mb-4"><button onClick={onClose} className="text-slate-700"><ChevronLeftIcon /></button><h2 className="text-xl font-bold text-slate-800 ml-4">Historial Médico</h2></div>
-                     <div className="space-y-4">
-                        {history.map((item, i) => (
-                            <div key={i} className="glass p-4 rounded-xl flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-white/70 rounded-lg flex items-center justify-center">{icons[item.type]}</div>
-                                <div>
-                                    <p className="font-bold text-slate-800">{item.title}</p>
-                                    <p className="text-sm text-slate-600">{item.date}</p>
-                                    {item.doctor && <p className="text-xs text-slate-500">{item.doctor}</p>}
-                                    {item.details && <p className="text-xs text-slate-500">{item.details}</p>}
-                                    {item.duration && <p className="text-xs text-slate-500">{item.duration}</p>}
+                     {loading && <p className="text-center text-slate-600">Cargando historial...</p>}
+                     {error && <p className="text-center text-red-500">{error}</p>}
+                     {!loading && !error && history.length === 0 && (
+                         <div className="text-center py-10 glass rounded-2xl">
+                            <p className="font-bold text-slate-700">Sin registros</p>
+                            <p className="text-sm text-slate-500">No hay eventos médicos (cirugías, vacunas, etc.) registrados.</p>
+                        </div>
+                     )}
+                     {!loading && !error && history.length > 0 && (
+                        <div className="space-y-4">
+                            {history.map((item) => (
+                                <div key={item.id} className="glass p-4 rounded-xl flex items-center space-x-4">
+                                    <div className="w-10 h-10 bg-white/70 rounded-lg flex items-center justify-center">{icons[item.type] || icons.default}</div>
+                                    <div>
+                                        <p className="font-bold text-slate-800">{item.title}</p>
+                                        <p className="text-sm text-slate-600">{new Date(item.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                        {item.doctor && <p className="text-xs text-slate-500">{item.doctor}</p>}
+                                        {item.details && <p className="text-xs text-slate-500">{item.details}</p>}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                     </div>
+                            ))}
+                        </div>
+                     )}
                 </div>
             )
         }
@@ -737,17 +1007,147 @@
             )
         }
 
+        const NotificationPanel = ({ onClose, patientId }) => {
+            const [notifications, setNotifications] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
 
-        const NotificationPanel = ({ onClose }) => { const n = [{ t: 'c', x: 'Tu cita con el Dr. Pérez es mañana.', i: 'hace 5 min' },{ t: 'm', x: 'No olvides tomar tus medicamentos.', i: 'hace 1 hora' },{ t: 'l', x: 'Nuevo record de pasos: ¡12,000!', i: 'hace 3 horas' }]; const icons = { c: <CalendarIcon className="h-6 w-6 text-blue-500"/>, m: <PillIcon className="h-6 w-6 text-green-500"/>, l: <TrendingUpIcon className="h-6 w-6 text-yellow-500" /> }; return ( <div className="modal-overlay"><div className="modal-content glass rounded-2xl p-4 w-full max-w-sm shadow-lg"><div className="flex justify-between items-center mb-4 px-2"><h3 className="font-bold text-lg text-slate-800">Notificaciones</h3><button onClick={onClose} className="text-slate-600 font-bold text-xl">×</button></div><div className="space-y-3">{n.map((item, index) => ( <div key={index} className="bg-white/50 rounded-lg p-3 flex items-center space-x-3"><div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">{icons[item.t]}</div><div className="flex-grow"><p className="text-sm text-slate-800">{item.x}</p><p className="text-xs text-slate-500">{item.i}</p></div></div> ))}</div></div></div> );};
+            useEffect(() => {
+                const fetchNotifications = async () => {
+                    if (!patientId) {
+                        setLoading(false);
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await window.supabase
+                            .from('notifications')
+                            .select('*')
+                            .eq('patient_id', patientId)
+                            .order('created_at', { ascending: false });
+
+                        if (error) {
+                            throw error;
+                        }
+                        setNotifications(data);
+                    } catch (error) {
+                        setError(error.message);
+                        console.error("Error fetching notifications:", error.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                fetchNotifications();
+            }, [patientId]);
+
+            const timeAgo = (dateString) => {
+                const date = new Date(dateString);
+                const now = new Date();
+                const seconds = Math.floor((now - date) / 1000);
+                let interval = seconds / 31536000;
+                if (interval > 1) return Math.floor(interval) + " años";
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + " meses";
+                interval = seconds / 86400;
+                if (interval > 1) return "hace " + Math.floor(interval) + " días";
+                interval = seconds / 3600;
+                if (interval > 1) return "hace " + Math.floor(interval) + " horas";
+                interval = seconds / 60;
+                if (interval > 1) return "hace " + Math.floor(interval) + " min";
+                return "hace " + Math.floor(seconds) + " seg";
+            };
+
+            const icons = {
+                appointment: <CalendarIcon className="h-6 w-6 text-blue-500" />,
+                medication: <PillIcon className="h-6 w-6 text-green-500" />,
+                achievement: <TrendingUpIcon className="h-6 w-6 text-yellow-500" />
+            };
+
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content glass rounded-2xl p-4 w-full max-w-sm shadow-lg">
+                        <div className="flex justify-between items-center mb-4 px-2">
+                            <h3 className="font-bold text-lg text-slate-800">Notificaciones</h3>
+                            <button onClick={onClose} className="text-slate-600 font-bold text-xl">×</button>
+                        </div>
+                        <div className="space-y-3">
+                            {loading && <p className="text-center text-slate-600">Cargando notificaciones...</p>}
+                            {error && <p className="text-center text-red-500">{error}</p>}
+                            {!loading && !error && notifications.length === 0 && (
+                                <p className="text-center text-slate-500 py-8">No tienes notificaciones nuevas.</p>
+                            )}
+                            {!loading && !error && notifications.map((item) => (
+                                <div key={item.id} className="bg-white/50 rounded-lg p-3 flex items-center space-x-3">
+                                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                                        {icons[item.type] || <BellIcon />}
+                                    </div>
+                                    <div className="flex-grow">
+                                        <p className="text-sm text-slate-800">{item.message}</p>
+                                        <p className="text-xs text-slate-500">{timeAgo(item.created_at)}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
         const AppointmentDetailsModal = ({ onClose }) => ( <div className="modal-overlay"><div className="modal-content glass rounded-2xl p-6 w-full max-w-sm shadow-lg"><button onClick={onClose} className="absolute top-4 right-4 text-slate-600 font-bold text-xl">×</button><div className="text-center"><div className="w-16 h-16 bg-blue-100 rounded-full mx-auto flex items-center justify-center mb-4"><CalendarIcon className="h-8 w-8 text-blue-600" /></div><h3 className="font-bold text-xl text-slate-800">Próxima Cita</h3><p className="text-slate-500 text-sm">Medicina General</p></div><div className="mt-6 space-y-4"><div className="flex items-center space-x-3"><div className="bg-slate-200/70 p-2 rounded-lg"><UserIcon className="h-5 w-5 text-slate-600"/></div><div><p className="text-sm font-semibold text-slate-700">Dr. Pérez</p><p className="text-xs text-slate-500">Médico Familiar</p></div></div><div className="flex items-center space-x-3"><div className="bg-slate-200/70 p-2 rounded-lg"><LocationMarkerIcon className="h-5 w-5 text-slate-600" /></div><div><p className="text-sm font-semibold text-slate-700">IMSS Clínica 2</p><p className="text-xs text-slate-500">Av. Siempre Viva 123</p></div></div><div className="flex items-center space-x-3"><div className="bg-slate-200/70 p-2 rounded-lg"><ClockIcon className="h-5 w-5 text-slate-600" /></div><div><p className="text-sm font-semibold text-slate-700">Diciembre 12, 2024</p><p className="text-xs text-slate-500">10:30 AM</p></div></div></div><div className="mt-6 bg-blue-50 p-3 rounded-lg text-center"><p className="text-sm text-blue-800">Recuerda llegar 15 minutos antes y traer tu identificación.</p></div></div></div> );
         
+        const CheckupDetailsModal = ({ onClose, checkup }) => {
+            if (!checkup) return null;
+
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content glass rounded-2xl p-6 w-full max-w-sm shadow-lg">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-600 font-bold text-xl">×</button>
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto flex items-center justify-center mb-4">
+                                <ClipboardListIcon className="h-8 w-8 text-blue-600" />
+                            </div>
+                            <h3 className="font-bold text-xl text-slate-800">Detalles del Chequeo</h3>
+                        </div>
+                        <div className="mt-6 space-y-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-slate-200/70 p-2 rounded-lg"><UserIcon className="h-5 w-5 text-slate-600"/></div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-700">{checkup.name}</p>
+                                    <p className="text-xs text-slate-500">Chequeo Programado</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-slate-200/70 p-2 rounded-lg"><LocationMarkerIcon className="h-5 w-5 text-slate-600" /></div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-700">{checkup.location || 'Ubicación no especificada'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-slate-200/70 p-2 rounded-lg"><ClockIcon className="h-5 w-5 text-slate-600" /></div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-700">{new Date(checkup.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                    <p className="text-xs text-slate-500">{new Date(checkup.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 bg-blue-50 p-3 rounded-lg">
+                            <p className="text-sm text-blue-800">{checkup.details || 'No hay detalles adicionales para este chequeo.'}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
         /* Icon Components */
-        const BellIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9"/></svg>;const CalendarIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>;const ClipboardListIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fillRule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h4a1 1 0 100-2H7z" clipRule="evenodd"/></svg>;const EyeIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>;const HeartIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/></svg>;const MoonIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>;const FireIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.28 17.28a.75.75 0 010-1.06l4.25-4.25H4.75a.75.75 0 010-1.5h11.78l-4.25-4.25a.75.75 0 111.06-1.06l5.5 5.5a.75.75 0 010 1.06l-5.5 5.5a.75.75 0 01-1.06 0z" clipRule="evenodd"/></svg>;const PillIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z"/></svg>;const UserIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;const LocationMarkerIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;const ClockIcon=({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;const PlusIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>;const FilterIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6"/></svg>;const ChevronLeftIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>;const SearchIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>;const TrendingUpIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>;const VideoCameraIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18V6a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2z"/></svg>;
+        const BellIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9"/></svg>;const CalendarIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>;const ClipboardListIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fillRule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h4a1 1 0 100-2H7z" clipRule="evenodd"/></svg>;const EyeIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>;const HeartIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/></svg>;const MoonIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>;const FireIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.28 17.28a.75.75 0 010-1.06l4.25-4.25H4.75a.75.75 0 010-1.5h11.78l-4.25-4.25a.75.75 0 111.06-1.06l5.5 5.5a.75.75 0 010 1.06l-5.5 5.5a.75.75 0 01-1.06 0z" clipRule="evenodd"/></svg>;const PillIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className || "h-6 w-6"} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z"/></svg>;const UserIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;const LocationMarkerIcon=({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;const ClockIcon=({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;const PlusIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>;const FilterIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6"/></svg>;const ChevronLeftIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>;const SearchIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>;const TrendingUpIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>;const VideoCameraIcon=({className})=><svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18V6a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2z"/></svg>;
         const ChevronRightIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
         const QrCodeIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
         const ProfilePlaceholderIcon = ({className}) => <svg className={className} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
         const CheckCircleIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>;
         const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
+        const SparklesIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v.25a.75.75 0 01-1.5 0V2.75A.75.75 0 0110 2zM5.404 4.343a.75.75 0 010 1.06l-.177.177a.75.75 0 11-1.06-1.06l.177-.177a.75.75 0 011.06 0zM14.596 4.343a.75.75 0 111.06 1.06l-.177.177a.75.75 0 11-1.06-1.06l.177-.177a.75.75 0 010-1.06zM2.75 10a.75.75 0 00-.75.75v.25a.75.75 0 001.5 0V10.75a.75.75 0 00-.75-.75zm15.25 0a.75.75 0 00-.75.75v.25a.75.75 0 001.5 0V10.75a.75.75 0 00-.75-.75zM10 18a.75.75 0 00-.75-.75v-.25a.75.75 0 00-1.5 0v.25a.75.75 0 00.75.75zm4.596-1.343a.75.75 0 11-1.06-1.06l.177-.177a.75.75 0 111.06 1.06l-.177.177zM5.404 15.657a.75.75 0 11-1.06-1.06l.177-.177a.75.75 0 011.06 1.06l-.177.177z" clipRule="evenodd" /></svg>;
+        const SendIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>;
 
         const NavButton = ({ id, label, icon, activeTab, setTab }) => { const isActive = activeTab === id; return ( <button onClick={() => setTab(id)} className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? 'text-blue-600' : 'text-slate-500'}`}><div className={`transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-70'}`}>{icon}</div><span className={`text-xs mt-1 transition-all duration-300 ${isActive ? 'font-semibold' : 'font-normal'}`}>{label}</span></button> ) };
         const HomeIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
