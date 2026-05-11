@@ -2,7 +2,7 @@
 {
   "name": "AppMedica",
   "short_name": "AppMedica",
-  "start_url": "/index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#E0F2FE",
   "theme_color": "#0EA5E9",
