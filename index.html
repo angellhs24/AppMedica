@@ -45,7 +45,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-900 flex justify-center items-center min-h-screen">
+<body class="bg-black">
     <div id="root"></div>
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -93,7 +93,7 @@
             };
 
             return (
-                <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-200 to-blue-300 relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col justify-center p-8">
+                <div className="w-screen h-screen bg-gradient-to-tr from-cyan-200 to-blue-300 relative overflow-hidden flex flex-col justify-center p-8">
                     <div className="glass rounded-2xl p-8 pt-12 mt-12 fade-in">
                         <div className="text-center mb-8">
                             <h1 className="text-2xl font-bold text-slate-800">Accede a tu Expediente</h1>
@@ -130,7 +130,7 @@
             const name = rememberedUser?.name?.split(' ')[0] || 'Hola';
 
             return (
-                 <div className="w-[390px] h-[844px] bg-black relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white flex flex-col justify-end">
+                 <div className="w-screen h-screen bg-black relative overflow-hidden flex flex-col justify-end">
                     {storyImages.map((src, index) => (
                         <img key={src} src={src} className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentStory ? 'opacity-100 story-image' : 'opacity-0'}`} />
                     ))}
@@ -312,12 +312,12 @@
             };
 
             if (loading) {
-                return <div className="w-[390px] h-[844px] flex items-center justify-center bg-slate-800 text-white rounded-[3rem]"><p>Cargando...</p></div>;
+                return <div className="w-screen h-screen flex items-center justify-center bg-slate-800 text-white"><p>Cargando...</p></div>;
             }
             
             if (session) {
                  return (
-                    <div className="w-[390px] h-[844px] bg-gradient-to-tr from-cyan-100 to-blue-200 relative overflow-hidden rounded-[3rem] shadow-2xl border-[8px] border-white">
+                    <div className="w-screen h-screen bg-gradient-to-tr from-cyan-100 to-blue-200 relative overflow-hidden">
                         {showInstallBanner && <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white p-4 z-50 flex justify-between items-center"><p className="text-sm">Instala la app para una mejor experiencia.</p><div><button onClick={() => installEvent.prompt()} className="bg-white text-blue-500 font-bold py-1 px-3 rounded-lg mr-2 text-sm">Instalar</button><button onClick={() => setShowInstallBanner(false)} className="font-bold text-sm">X</button></div></div>}
                         
                         {/* Main content and tabs */}
@@ -665,7 +665,7 @@
                     </div>
                 </div>
             )
-        }
+        };
 
         const AiChatScreen = ({ onClose }) => {
             const [messages, setMessages] = useState([
